@@ -61,129 +61,108 @@ def calcular_rendimiento_riesgo(datos):
 
 # Configuración de la aplicación
 st.title("Allianz Patrimonial - Simulador y Consulta de Rendimientos de los ETFs")
-st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a consultar el riesgo.")
+st.write("Este simulador te ayudará a ver los rendimientos de algunos ETfs y a consultar el riesgo.")
 
-# Selección de uno o dos ETFs y periodo de análisis
-etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
-etf_seleccionado2 = st.selectbox("Selecciona el segundo ETF (opcional)", ("Ninguno", "SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))
+# Selección de ETF y periodo de análisis
+etf_seleccionado = st.selectbox("Selecciona el ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
+periodo_seleccionado = st.selectbox("Selecciona el periodo", ("1mo", "3mo", "6mo", "1y", "3y", "5y", "10y"))
 
-# Nueva lista de periodos, con los periodos cortos agregados
-periodo_seleccionado = st.selectbox("Selecciona el periodo para la proyección", ("1 Mes", "3 Meses", "1 Año", "3 Años", "5 Años", "10 Años"))
+# Obtención de datos
+st.write(f"Mostrando datos para el ETF {etf_seleccionado} en el periodo {periodo_seleccionado}.")
+datos_etf = obtener_datos_etf(etf_seleccionado, periodo_seleccionado)
 
-# Mapeo de periodos para Yahoo Finance y en años para la proyección futura
-periodos_mapping = {"1 Mes": "1mo", "3 Meses": "3mo", "1 Año": "1y", "3 Años": "3y", "5 Años": "5y", "10 Años": "10y"}
-anos_mapping = {"1 Mes": 1/12, "3 Meses": 1/4, "1 Año": 1, "3 Años": 3, "5 Años": 5, "10 Años": 10}
+# Añadimos la calculadora de inversión
+st.write("### Calculadora de Inversión")
+col1, col2 = st.columns(2)
 
-# Periodo de análisis y número de años de proyección
-periodo = periodos_mapping[periodo_seleccionado]
-anos = anos_mapping[periodo_seleccionado]
+with col1:
+    monto_inicial = st.number_input("Ingresa el monto a invertir (USD)", 
+                                   min_value=0.0, 
+                                   value=1000.0, 
+                                   step=100.0,
+                                   format="%.2f")
 
-# Obtención del monto inicial
-monto_inicial = st.number_input("Ingresa el monto a invertir (USD)", min_value=0.0, value=1000.0, step=100.0, format="%.2f")
-
-# Lista para almacenar información de los ETFs seleccionados
-etfs_info = []
-
-# Función para mostrar resultados de un ETF específico
-def mostrar_resultados(etf_ticker, monto_inicial, color):
-    datos_etf = obtener_datos_etf(etf_ticker, periodo)
-    if datos_etf.empty:
-        st.write(f"No se encontró información para el ETF {etf_ticker}.")
-        return None
-    
-    # Calcula el rendimiento y el riesgo
+# Verificación de que los datos fueron obtenidos
+if not datos_etf.empty:
     rendimiento, riesgo, rendimiento_periodo = calcular_rendimiento_riesgo(datos_etf)
+    
     monto_final = monto_inicial * (1 + rendimiento_periodo)
     ganancia_perdida = monto_final - monto_inicial
     
-    # Almacena la información del ETF para la proyección
-    etfs_info.append((etf_ticker, rendimiento, datos_etf, color))
+    with col2:
+        st.markdown("""
+            <div class="metrics-container">
+                <div style="text-align: center;">
+                    <h4 style="color: #002B4D;">Monto Final Estimado</h4>
+                    <div class="metric-value">${:,.2f}</div>
+                    <div style="margin-top: 10px; font-size: 0.9em;">
+                        {}: ${:,.2f}
+                    </div>
+                </div>
+            </div>
+        """.format(
+            monto_final,
+            "Ganancia" if ganancia_perdida >= 0 else "Pérdida",
+            abs(ganancia_perdida)
+        ), unsafe_allow_html=True)
 
-    # Resultados para el ETF actual
-    st.markdown(f"### Resultados para {etf_ticker}")
-    st.markdown(f"""
-        <div class="metrics-container">
-            <h4 style="color: #002B4D;">Monto Final Estimado</h4>
-            <div style="font-size: 1.2em; font-weight: bold;">${monto_final:,.2f}</div>
-            <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia' if ganancia_perdida >= 0 else 'Pérdida'}: ${abs(ganancia_perdida):,.2f}</span></p>
-        </div>
+    st.markdown("""
         <div class="metrics-container">
             <h4 style="color: #002B4D;">Detalles de la Inversión</h4>
             <table style="width: 100%;">
                 <tr>
-                    <td><strong>Monto Inicial:</strong></td>
-                    <td style="text-align: right;">${monto_inicial:,.2f}</td>
+                    <td style="padding: 5px;"><strong>Monto Inicial:</strong></td>
+                    <td style="text-align: right;">${:,.2f}</td>
                 </tr>
                 <tr>
-                    <td><strong>Rendimiento del Período:</strong></td>
-                    <td style="text-align: right;">{rendimiento_periodo:.2%}</td>
+                    <td style="padding: 5px;"><strong>Rendimiento del Período:</strong></td>
+                    <td style="text-align: right;">{:.2%}</td>
                 </tr>
                 <tr>
-                    <td><strong>Ganancia/Pérdida:</strong></td>
-                    <td style="text-align: right; color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">${abs(ganancia_perdida):,.2f}</td>
+                    <td style="padding: 5px;"><strong>Ganancia/Pérdida:</strong></td>
+                    <td style="text-align: right; color: {};">${:,.2f}</td>
                 </tr>
                 <tr>
-                    <td><strong>Monto Final:</strong></td>
-                    <td style="text-align: right;">${monto_final:,.2f}</td>
+                    <td style="padding: 5px;"><strong>Monto Final:</strong></td>
+                    <td style="text-align: right;">${:,.2f}</td>
                 </tr>
             </table>
         </div>
+    """.format(
+        monto_inicial,
+        rendimiento_periodo,
+        "#28a745" if ganancia_perdida >= 0 else "#dc3545",
+        abs(ganancia_perdida),
+        monto_final
+    ), unsafe_allow_html=True)
+    
+    st.markdown("""
         <div class="metrics-container">
             <div style="display: flex; justify-content: space-around;">
                 <div style="text-align: center;">
-                    <h4 style="color: #002B4D;">Rendimiento Anualizado</h4>
-                    <div>{rendimiento:.2%}</div>
+                    <h3 style="color: #002B4D;">Rendimiento Anualizado</h3>
+                    <div class="metric-value">{}</div>
                 </div>
                 <div style="text-align: center;">
-                    <h4 style="color: #002B4D;">Riesgo Anualizado</h4>
-                    <div>{riesgo:.2%}</div>
+                    <h3 style="color: #002B4D;">Riesgo Anualizado</h3>
+                    <div class="metric-value">{}</div>
                 </div>
             </div>
         </div>
-    """, unsafe_allow_html=True)
-
-# Mostrar resultados para el primer ETF
-mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
-
-# Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
-if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
-
-# Gráfica de proyección de inversión en el futuro
-st.write(f"### Proyección de Inversión en el Futuro ({periodo_seleccionado})")
-
-fig, ax = plt.subplots()
-
-# Crear proyección futura para cada ETF seleccionado
-for etf_ticker, rendimiento_anual, _, color in etfs_info:
-    # Generar fechas futuras para la proyección
-    fechas = pd.date_range(start=pd.Timestamp.today(), periods=int(anos * 12), freq='M')
-    proyeccion_montos = [monto_inicial * (1 + rendimiento_anual)**(i/12) for i in range(len(fechas))]
+    """.format(f"{rendimiento:.2%}", f"{riesgo:.2%}"), unsafe_allow_html=True)
     
-    # Graficar proyección
-    ax.plot(fechas, proyeccion_montos, linestyle="--", color=color, label=etf_ticker)
-
-ax.set_title("Proyección de Inversión Futura")
-ax.set_xlabel("Fecha")
-ax.set_ylabel("Monto de Inversión (USD)")
-ax.legend(title="ETF")
-
-st.pyplot(fig)
-
-# Gráfica del rendimiento histórico
-st.write(f"### Rendimiento Histórico de los ETFs Seleccionados ({periodo_seleccionado})")
-
-fig, ax = plt.subplots()
-
-for etf_ticker, _, datos_etf, color in etfs_info:
-    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Close", ax=ax, label=etf_ticker, color=color)
-
-ax.set_title("Rendimiento Histórico")
-ax.set_xlabel("Fecha")
-ax.set_ylabel("Precio de Cierre (USD)")
-ax.legend(title="ETF")
-
-st.pyplot(fig)
+    # Gráfico de proyección de inversión
+    st.write("### Proyección de Inversión en el Tiempo")
+    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
+    
+    fig, ax = plt.subplots()
+    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, color="#002B4D")
+    ax.set_title(f"Proyección de Inversión para {etf_seleccionado}")
+    ax.set_xlabel("Fecha")
+    ax.set_ylabel("Monto de Inversión (USD)")
+    st.pyplot(fig)
+else:
+    st.write("No se encontró información del ETF seleccionado.")
 
 # Sección de Información de Contacto
 st.markdown("""
