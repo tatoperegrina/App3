@@ -66,18 +66,21 @@ st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a 
 # Selección de uno o dos ETFs y periodo de análisis
 etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
 etf_seleccionado2 = st.selectbox("Selecciona el segundo ETF (opcional)", ("Ninguno", "SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))
-periodo_seleccionado = st.selectbox("Selecciona el periodo", ("1mo", "3mo", "6mo", "1y", "3y", "5y", "10y"))
+periodo_seleccionado = st.selectbox("Selecciona el periodo para la proyección", ("1 Año", "3 Años", "5 Años", "10 Años"))
 
-# Obtención de datos
+# Conversión del periodo en años
+periodos_anos = {"1 Año": 1, "3 Años": 3, "5 Años": 5, "10 Años": 10}
+anos = periodos_anos[periodo_seleccionado]
+
+# Obtención del monto inicial
 monto_inicial = st.number_input("Ingresa el monto a invertir (USD)", min_value=0.0, value=1000.0, step=100.0, format="%.2f")
 
 # Lista para almacenar datos de los ETFs seleccionados
-etfs_datos = []
 etfs_info = []
 
 # Función para mostrar resultados de un ETF específico
 def mostrar_resultados(etf_ticker, monto_inicial, color):
-    datos_etf = obtener_datos_etf(etf_ticker, periodo_seleccionado)
+    datos_etf = obtener_datos_etf(etf_ticker, "5y")  # Se usa un periodo de 5 años para calcular el rendimiento histórico
     if datos_etf.empty:
         st.write(f"No se encontró información para el ETF {etf_ticker}.")
         return None
@@ -87,19 +90,19 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
     monto_final = monto_inicial * (1 + rendimiento_periodo)
     ganancia_perdida = monto_final - monto_inicial
     
-    # Almacena datos en lista
-    etfs_datos.append((etf_ticker, datos_etf))
-    
+    # Almacena información del ETF para proyección futura
+    etfs_info.append((etf_ticker, rendimiento, color))
+
     # Resultados para el ETF actual
     st.markdown(f"### Resultados para {etf_ticker}")
     st.markdown(f"""
         <div class="metrics-container">
-            <h4 style="color: {color};">Monto Final Estimado</h4>
+            <h4 style="color: #002B4D;">Monto Final Estimado</h4>
             <div style="font-size: 1.2em; font-weight: bold;">${monto_final:,.2f}</div>
             <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia' if ganancia_perdida >= 0 else 'Pérdida'}: ${abs(ganancia_perdida):,.2f}</span></p>
         </div>
         <div class="metrics-container">
-            <h4 style="color: {color};">Detalles de la Inversión</h4>
+            <h4 style="color: #002B4D;">Detalles de la Inversión</h4>
             <table style="width: 100%;">
                 <tr>
                     <td><strong>Monto Inicial:</strong></td>
@@ -122,11 +125,11 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
         <div class="metrics-container">
             <div style="display: flex; justify-content: space-around;">
                 <div style="text-align: center;">
-                    <h4 style="color: {color};">Rendimiento Anualizado</h4>
+                    <h4 style="color: #002B4D;">Rendimiento Anualizado</h4>
                     <div>{rendimiento:.2%}</div>
                 </div>
                 <div style="text-align: center;">
-                    <h4 style="color: {color};">Riesgo Anualizado</h4>
+                    <h4 style="color: #002B4D;">Riesgo Anualizado</h4>
                     <div>{riesgo:.2%}</div>
                 </div>
             </div>
@@ -138,25 +141,29 @@ mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
 
 # Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
 if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
+    mostrar_resultados(etf_seleccionado2, monto_inicial, "#002B4D")
 
-# Gráfica de proyección de inversión para uno o dos ETFs
-st.write("### Proyección de Inversión en el Tiempo")
+# Gráfica de proyección de inversión para el futuro
+st.write(f"### Proyección de Inversión en el Futuro ({periodo_seleccionado})")
 
 fig, ax = plt.subplots()
 
-# Crear gráfica para cada ETF seleccionado con colores distintos
-for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
-    color = "#002B4D" if idx == 0 else "#FF5733"  # Color distinto para el segundo ETF
-    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
-    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
+# Crear proyección futura para cada ETF seleccionado
+for etf_ticker, rendimiento_anual, color in etfs_info:
+    # Generar fechas futuras para la proyección
+    fechas = pd.date_range(start=pd.Timestamp.today(), periods=anos + 1, freq='Y')
+    proyeccion_montos = [monto_inicial * (1 + rendimiento_anual)**i for i in range(anos + 1)]
+    
+    # Graficar proyección
+    ax.plot(fechas, proyeccion_montos, marker="o", linestyle="--", color=color, label=etf_ticker)
 
-ax.set_title("Proyección de Inversión")
+ax.set_title("Proyección de Inversión Futura")
 ax.set_xlabel("Fecha")
 ax.set_ylabel("Monto de Inversión (USD)")
 ax.legend(title="ETF")
 
 st.pyplot(fig)
+
 # Sección de Información de Contacto
 st.markdown("""
     <div class="contact-info">
