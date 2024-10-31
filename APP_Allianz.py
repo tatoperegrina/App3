@@ -66,21 +66,27 @@ st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a 
 # Selección de uno o dos ETFs y periodo de análisis
 etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
 etf_seleccionado2 = st.selectbox("Selecciona el segundo ETF (opcional)", ("Ninguno", "SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))
-periodo_seleccionado = st.selectbox("Selecciona el periodo para la proyección", ("1 Año", "3 Años", "5 Años", "10 Años"))
 
-# Conversión del periodo en años
-periodos_anos = {"1 Año": 1, "3 Años": 3, "5 Años": 5, "10 Años": 10}
-anos = periodos_anos[periodo_seleccionado]
+# Nueva lista de periodos, con los periodos cortos agregados
+periodo_seleccionado = st.selectbox("Selecciona el periodo para la proyección", ("1 Mes", "3 Meses", "1 Año", "3 Años", "5 Años", "10 Años"))
+
+# Mapeo de periodos para Yahoo Finance y en años para la proyección futura
+periodos_mapping = {"1 Mes": "1mo", "3 Meses": "3mo", "1 Año": "1y", "3 Años": "3y", "5 Años": "5y", "10 Años": "10y"}
+anos_mapping = {"1 Mes": 1/12, "3 Meses": 1/4, "1 Año": 1, "3 Años": 3, "5 Años": 5, "10 Años": 10}
+
+# Periodo de análisis y número de años de proyección
+periodo = periodos_mapping[periodo_seleccionado]
+anos = anos_mapping[periodo_seleccionado]
 
 # Obtención del monto inicial
 monto_inicial = st.number_input("Ingresa el monto a invertir (USD)", min_value=0.0, value=1000.0, step=100.0, format="%.2f")
 
-# Lista para almacenar datos de los ETFs seleccionados
+# Lista para almacenar información de los ETFs seleccionados
 etfs_info = []
 
 # Función para mostrar resultados de un ETF específico
 def mostrar_resultados(etf_ticker, monto_inicial, color):
-    datos_etf = obtener_datos_etf(etf_ticker, "5y")  # Se usa un periodo de 5 años para calcular el rendimiento histórico
+    datos_etf = obtener_datos_etf(etf_ticker, periodo)
     if datos_etf.empty:
         st.write(f"No se encontró información para el ETF {etf_ticker}.")
         return None
@@ -90,8 +96,8 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
     monto_final = monto_inicial * (1 + rendimiento_periodo)
     ganancia_perdida = monto_final - monto_inicial
     
-    # Almacena información del ETF para proyección futura
-    etfs_info.append((etf_ticker, rendimiento, color))
+    # Almacena la información del ETF para la proyección
+    etfs_info.append((etf_ticker, rendimiento, datos_etf, color))
 
     # Resultados para el ETF actual
     st.markdown(f"### Resultados para {etf_ticker}")
@@ -141,25 +147,40 @@ mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
 
 # Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
 if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    mostrar_resultados(etf_seleccionado2, monto_inicial, "#002B4D")
+    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
 
-# Gráfica de proyección de inversión para el futuro
+# Gráfica de proyección de inversión en el futuro
 st.write(f"### Proyección de Inversión en el Futuro ({periodo_seleccionado})")
 
 fig, ax = plt.subplots()
 
 # Crear proyección futura para cada ETF seleccionado
-for etf_ticker, rendimiento_anual, color in etfs_info:
+for etf_ticker, rendimiento_anual, _, color in etfs_info:
     # Generar fechas futuras para la proyección
-    fechas = pd.date_range(start=pd.Timestamp.today(), periods=anos + 1, freq='Y')
-    proyeccion_montos = [monto_inicial * (1 + rendimiento_anual)**i for i in range(anos + 1)]
+    fechas = pd.date_range(start=pd.Timestamp.today(), periods=int(anos * 12), freq='M')
+    proyeccion_montos = [monto_inicial * (1 + rendimiento_anual)**(i/12) for i in range(len(fechas))]
     
     # Graficar proyección
-    ax.plot(fechas, proyeccion_montos, marker="o", linestyle="--", color=color, label=etf_ticker)
+    ax.plot(fechas, proyeccion_montos, linestyle="--", color=color, label=etf_ticker)
 
 ax.set_title("Proyección de Inversión Futura")
 ax.set_xlabel("Fecha")
 ax.set_ylabel("Monto de Inversión (USD)")
+ax.legend(title="ETF")
+
+st.pyplot(fig)
+
+# Gráfica del rendimiento histórico
+st.write(f"### Rendimiento Histórico de los ETFs Seleccionados ({periodo_seleccionado})")
+
+fig, ax = plt.subplots()
+
+for etf_ticker, _, datos_etf, color in etfs_info:
+    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Close", ax=ax, label=etf_ticker, color=color)
+
+ax.set_title("Rendimiento Histórico")
+ax.set_xlabel("Fecha")
+ax.set_ylabel("Precio de Cierre (USD)")
 ax.legend(title="ETF")
 
 st.pyplot(fig)
