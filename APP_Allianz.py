@@ -25,6 +25,23 @@ st.markdown(
         margin: 10px 0;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
+    .contact-info {
+        margin-top: 50px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        color: #002B4D;
+        background-color: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .contact-info h4 {
+        font-size: 1.2em;
+    }
+    .contact-info p {
+        font-size: 1em;
+        margin: 5px 0;
+    }
     </style>
     """, unsafe_allow_html=True
 )
@@ -39,7 +56,6 @@ def obtener_datos_etf(ticker, periodo):
 def calcular_rendimiento_riesgo(datos):
     rendimiento = datos['Close'].pct_change().mean() * 252
     riesgo = datos['Close'].pct_change().std() * (252 ** 0.5)
-    # Calculamos el rendimiento total del período
     rendimiento_periodo = (datos['Close'][-1] - datos['Close'][0]) / datos['Close'][0]
     return rendimiento, riesgo, rendimiento_periodo
 
@@ -68,17 +84,11 @@ with col1:
 
 # Verificación de que los datos fueron obtenidos
 if not datos_etf.empty:
-    st.write("### Datos Históricos del ETF")
-    st.write(datos_etf.tail())
-    
-    # Calcula rendimiento y riesgo
     rendimiento, riesgo, rendimiento_periodo = calcular_rendimiento_riesgo(datos_etf)
     
-    # Calculamos el monto final
     monto_final = monto_inicial * (1 + rendimiento_periodo)
     ganancia_perdida = monto_final - monto_inicial
     
-    # Mostramos los resultados en un contenedor con estilo
     with col2:
         st.markdown("""
             <div class="metrics-container">
@@ -96,7 +106,6 @@ if not datos_etf.empty:
             abs(ganancia_perdida)
         ), unsafe_allow_html=True)
 
-    # Añadimos más detalles sobre la inversión
     st.markdown("""
         <div class="metrics-container">
             <h4 style="color: #002B4D;">Detalles de la Inversión</h4>
@@ -127,7 +136,6 @@ if not datos_etf.empty:
         monto_final
     ), unsafe_allow_html=True)
     
-    # Contenedor con fondo blanco para las métricas de rendimiento y riesgo
     st.markdown("""
         <div class="metrics-container">
             <div style="display: flex; justify-content: space-around;">
@@ -143,13 +151,15 @@ if not datos_etf.empty:
         </div>
     """.format(f"{rendimiento:.2%}", f"{riesgo:.2%}"), unsafe_allow_html=True)
     
-    # Visualización con Seaborn y Pyplot
-    st.write("### Gráfico de Precio de Cierre")
+    # Gráfico de proyección de inversión
+    st.write("### Proyección de Inversión en el Tiempo")
+    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
+    
     fig, ax = plt.subplots()
-    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Close", ax=ax, color="#002B4D")
-    ax.set_title(f"Precio de Cierre de {etf_seleccionado} en {periodo_seleccionado}")
+    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, color="#002B4D")
+    ax.set_title(f"Proyección de Inversión para {etf_seleccionado}")
     ax.set_xlabel("Fecha")
-    ax.set_ylabel("Precio de Cierre (USD)")
+    ax.set_ylabel("Monto de Inversión (USD)")
     st.pyplot(fig)
 else:
     st.write("No se encontró información del ETF seleccionado.")
@@ -163,3 +173,6 @@ st.markdown("""
         <p><strong>Correo Electrónico:</strong> 0242856@up.edu.mx</p>
     </div>
 """, unsafe_allow_html=True)
+
+   
+
