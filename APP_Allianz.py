@@ -141,7 +141,7 @@ if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
     mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
 
 # Gráfica de proyección de inversión para uno o dos ETFs
-st.write("### Proyección de Inversión en el Tiempo")
+st.write("### Gráfico del Precio Histórico")
 
 fig, ax = plt.subplots()
 
@@ -151,7 +151,7 @@ for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
     datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
     sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
 
-ax.set_title("Proyección de Inversión")
+ax.set_title("Histórico")
 ax.set_xlabel("Fecha")
 ax.set_ylabel("Monto de Inversión (USD)")
 ax.legend(title="ETF")
