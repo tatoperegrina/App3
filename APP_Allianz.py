@@ -61,7 +61,7 @@ def calcular_rendimiento_riesgo(datos):
 
 # Configuración de la aplicación
 st.title("Allianz Patrimonial - Simulador y Consulta de Rendimientos de los ETFs")
-st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a consultar el riesgo.")
+st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a consultar el riesgo. IMPORTANTE, ningun rendimiento o resultado está garantizado. Tome sus decisiones con precaución.")
 
 # Selección de uno o dos ETFs y periodo de análisis
 etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
