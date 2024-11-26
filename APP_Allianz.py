@@ -59,7 +59,7 @@ def calcular_rendimiento_riesgo(datos):
     return rendimiento, riesgo, rendimiento_periodo
 
 # Configuración de la aplicación
-st.title("Allianz Patrimonial - Simulador y Consulta de Rendimientos de los ETFs")
+st.title("Simulador y Consulta de Rendimientos de los ETFs")
 st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a consultar el riesgo. IMPORTANTE, ningún rendimiento o resultado está garantizado. Tome sus decisiones con precaución.")
 
 # Selección de uno o dos ETFs y periodo de análisis
