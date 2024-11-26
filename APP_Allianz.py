@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Configuración de la página y estilo
-st.set_page_config(page_title="Allianz Patrimonial - Simulador y Consulta de Rendimientos de los ETFs", layout="centered")
+st.set_page_config(page_title="Simulador y Consulta de Rendimientos de los ETFs", layout="centered")
 st.markdown(
     """
     <style>
