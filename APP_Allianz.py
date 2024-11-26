@@ -161,17 +161,6 @@ ax.legend(title="ETF")
 
 st.pyplot(fig)
 
-benchmark = st.selectbox("Selecciona un índice de referencia", ("^GSPC", "^IXIC", "^DJI"))
-datos_benchmark = obtener_datos_etf(benchmark, periodo_seleccionado)
-rendimiento_benchmark = calcular_rendimiento_riesgo(datos_benchmark)[0]
-st.write(f"Rendimiento anualizado del índice {benchmark}: {rendimiento_benchmark:.2%}")
-
-from sklearn.linear_model import LinearRegression
-modelo = LinearRegression()
-datos_etf['Tiempo'] = range(len(datos_etf))
-modelo.fit(datos_etf[['Tiempo']], datos_etf['Close'])
-prediccion = modelo.predict([[len(datos_etf) + 30]])  # Precio en 30 días
-st.write(f"Predicción del precio del ETF en 30 días: ${prediccion[0]:.2f}")
 
 
 
