@@ -94,7 +94,7 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
     st.markdown(f"### Resultados para {etf_ticker}")
     st.markdown(f"""
         <div class="metrics-container">
-            <h4 style="color: {color};">Monto Final Estimado</h4>
+            <h4 style="color: {color};">Monto Final Estimado (USD)</h4>
             <div style="font-size: 1.2em; font-weight: bold;">${monto_final:,.2f}</div>
             <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia' if ganancia_perdida >= 0 else 'Pérdida'}: ${abs(ganancia_perdida):,.2f}</span></p>
         </div>
