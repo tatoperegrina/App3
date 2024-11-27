@@ -100,7 +100,7 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
         </div>
         <div class="metrics-container">
             <h4 style="color: {color};">Detalles de la Inversión</h4>
-            <table style="width: 100%; margin-top:10px">
+            <table style="width: 100%; font-size: 1em;">
                 <tr>
                     <td><strong>Monto Inicial:</strong></td>
                     <td style="text-align: right;">${monto_inicial:,.2f}</td>
@@ -132,67 +132,36 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
             </div>
         </div>
     """, unsafe_allow_html=True)
-    
 
 # Mostrar resultados para el primer ETF
 mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
 
+# Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
+if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
+    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
+
+# Gráfica de proyección de inversión para uno o dos ETFs
+st.write("### Gráfico del Precio Histórico")
+
+fig, ax = plt.subplots()
+
+# Crear gráfica para cada ETF seleccionado con colores distintos
+for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
+    color = "#002B4D" if idx == 0 else "#FF5733"  # Color distinto para el segundo ETF
+    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
+    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
+
+ax.set_title("Histórico")
+ax.set_xlabel("Fecha")
+ax.set_ylabel("Monto de Inversión (USD)")
+ax.legend(title="ETF")
+
+st.pyplot(fig)
+
 # Predicción Basada en Machine Learning
 st.write("### Predicción del Precio Futuro (Machine Learning)")
-
-# Función para realizar predicciones y graficar resultados
-def prediccion_ml(etf_ticker, datos_etf, dias_a_predecir, color):
-    st.markdown(f"#### Predicción para {etf_ticker}")
-    
-    # Preparar datos para el modelo
-    datos_entrenamiento = datos_etf['Close'].reset_index()
-    datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))  # Índice temporal para la regresión
-    
-    # Entrenar el modelo
-    modelo = LinearRegression()
-    modelo.fit(datos_entrenamiento[['Tiempo']], datos_entrenamiento['Close'])
-    
-    # Hacer predicciones
-    tiempo_futuro = np.array(range(len(datos_entrenamiento) + dias_a_predecir)).reshape(-1, 1)
-    predicciones = modelo.predict(tiempo_futuro)
-    
-    # Precio proyectado
-    precio_futuro = predicciones[-1]
-    st.write(f"El precio proyectado del ETF **{etf_ticker}** en {dias_a_predecir} días es de **${precio_futuro:,.2f}**.")
-    
-    # Graficar datos históricos y predicciones
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(datos_entrenamiento['Tiempo'], datos_entrenamiento['Close'], label='Precio Histórico', color=color)
-    ax.plot(tiempo_futuro, predicciones, label='Proyección', linestyle='--', color='orange')
-    
-    # Etiquetas y estilos
-    ax.set_title(f"Proyección del Precio para {etf_ticker}")
-    ax.set_xlabel("Días")
-    ax.set_ylabel("Precio (USD)")
-    ax.legend()
-    
-    st.pyplot(fig)
-
-# Control deslizante para definir el horizonte de predicción
 dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro", 1, 60, 30)
-
-# Predicción para el primer ETF
-datos_etf_1 = obtener_datos_etf(etf_seleccionado1, periodo_seleccionado)
-if not datos_etf_1.empty:
-    prediccion_ml(etf_seleccionado1, datos_etf_1, dias_a_predecir, "#002B4D")
-
-# Predicción para el segundo ETF (si se selecciona)
-if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    datos_etf_2 = obtener_datos_etf(etf_seleccionado2, periodo_seleccionado)
-    if not datos_etf_2.empty:
-        prediccion_ml(etf_seleccionado2, datos_etf_2, dias_a_predecir, "#FF5733")
-
-# Sección de Información de Contacto
-st.markdown("""
-    <div class="contact-info">
-        <h4>Información de Contacto del Asesor</h4>
-        <p><strong>Nombre:</strong> Santiago Peregrina Flores</p>
-        <p><strong>Celular:</strong> 3312706143</p>
-        <p><strong>Correo Electrónico:</strong> 0242856@up.edu.mx</p>
-    </div>
-""", unsafe_allow_html=True)
+for etf_ticker, datos_etf in etfs_datos:
+    datos_entrenamiento = datos_etf['Close'].reset_index()
+    datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
+   
