@@ -100,7 +100,7 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
         </div>
         <div class="metrics-container">
             <h4 style="color: {color};">Detalles de la Inversión</h4>
-            <table style="width: 100%;">
+            <table style="width: 100%; margin-top:10px">
                 <tr>
                     <td><strong>Monto Inicial:</strong></td>
                     <td style="text-align: right;">${monto_inicial:,.2f}</td>
@@ -133,55 +133,59 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
         </div>
     """, unsafe_allow_html=True)
     
-    # Interpretación del Rendimiento y Riesgo
-    st.write("#### Interpretación de las Métricas:")
-    st.write(f"**Rendimiento Anualizado:** Representa el promedio del crecimiento esperado por año basado en los datos históricos del ETF **{etf_ticker}**. Este valor no garantiza rendimientos futuros, pero es útil para estimar el comportamiento potencial.")
-    st.write(f"**Riesgo Anualizado:** Indica la volatilidad del ETF **{etf_ticker}**, es decir, qué tan fluctuante es su rendimiento anual. Un valor más alto implica mayor incertidumbre en los resultados.")
 
 # Mostrar resultados para el primer ETF
 mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
 
-# Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
-if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
-
-# Gráfica de proyección de inversión para uno o dos ETFs
-st.write("### Gráfico del Precio Histórico")
-
-fig, ax = plt.subplots()
-
-# Crear gráfica para cada ETF seleccionado con colores distintos
-for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
-    color = "#002B4D" if idx == 0 else "#FF5733"  # Color distinto para el segundo ETF
-    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
-    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
-
-ax.set_title("Histórico")
-ax.set_xlabel("Fecha")
-ax.set_ylabel("Monto de Inversión (USD)")
-ax.legend(title="ETF")
-
-st.pyplot(fig)
-
-# Selector de Índices de Referencia
-st.write("### Comparación con Índices de Referencia")
-benchmark = st.selectbox("Selecciona un índice de referencia", ("^GSPC (S&P 500)", "^IXIC (NASDAQ)", "^DJI (Dow Jones)"))
-benchmark_ticker = benchmark.split(" ")[0]
-datos_benchmark = obtener_datos_etf(benchmark_ticker, periodo_seleccionado)
-
-if not datos_benchmark.empty:
-    rendimiento_benchmark = calcular_rendimiento_riesgo(datos_benchmark)[0]
-    st.write(f"El rendimiento anualizado del índice de referencia seleccionado ({benchmark}) es de **{rendimiento_benchmark:.2%}**.")
-
 # Predicción Basada en Machine Learning
 st.write("### Predicción del Precio Futuro (Machine Learning)")
+
+# Función para realizar predicciones y graficar resultados
+def prediccion_ml(etf_ticker, datos_etf, dias_a_predecir, color):
+    st.markdown(f"#### Predicción para {etf_ticker}")
+    
+    # Preparar datos para el modelo
+    datos_entrenamiento = datos_etf['Close'].reset_index()
+    datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))  # Índice temporal para la regresión
+    
+    # Entrenar el modelo
+    modelo = LinearRegression()
+    modelo.fit(datos_entrenamiento[['Tiempo']], datos_entrenamiento['Close'])
+    
+    # Hacer predicciones
+    tiempo_futuro = np.array(range(len(datos_entrenamiento) + dias_a_predecir)).reshape(-1, 1)
+    predicciones = modelo.predict(tiempo_futuro)
+    
+    # Precio proyectado
+    precio_futuro = predicciones[-1]
+    st.write(f"El precio proyectado del ETF **{etf_ticker}** en {dias_a_predecir} días es de **${precio_futuro:,.2f}**.")
+    
+    # Graficar datos históricos y predicciones
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(datos_entrenamiento['Tiempo'], datos_entrenamiento['Close'], label='Precio Histórico', color=color)
+    ax.plot(tiempo_futuro, predicciones, label='Proyección', linestyle='--', color='orange')
+    
+    # Etiquetas y estilos
+    ax.set_title(f"Proyección del Precio para {etf_ticker}")
+    ax.set_xlabel("Días")
+    ax.set_ylabel("Precio (USD)")
+    ax.legend()
+    
+    st.pyplot(fig)
+
+# Control deslizante para definir el horizonte de predicción
 dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro", 1, 60, 30)
-datos_entrenamiento = datos_etf['Close'].reset_index()
-datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
-modelo = LinearRegression()
-modelo.fit(datos_entrenamiento[['Tiempo']], datos_entrenamiento['Close'])
-proyeccion = modelo.predict([[len(datos_entrenamiento) + dias_a_predecir]])
-st.write(f"El precio proyectado del ETF **{etf_seleccionado1}** en {dias_a_predecir} días es de **${proyeccion[0]:,.2f}**.")
+
+# Predicción para el primer ETF
+datos_etf_1 = obtener_datos_etf(etf_seleccionado1, periodo_seleccionado)
+if not datos_etf_1.empty:
+    prediccion_ml(etf_seleccionado1, datos_etf_1, dias_a_predecir, "#002B4D")
+
+# Predicción para el segundo ETF (si se selecciona)
+if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
+    datos_etf_2 = obtener_datos_etf(etf_seleccionado2, periodo_seleccionado)
+    if not datos_etf_2.empty:
+        prediccion_ml(etf_seleccionado2, datos_etf_2, dias_a_predecir, "#FF5733")
 
 # Sección de Información de Contacto
 st.markdown("""
