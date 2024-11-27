@@ -3,6 +3,8 @@ import yfinance as yf
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+import numpy as np
 
 # Configuración de la página y estilo
 st.set_page_config(page_title="Simulador y Consulta de Rendimientos de los ETFs", layout="centered")
@@ -45,7 +47,7 @@ st.markdown(
     """, unsafe_allow_html=True
 )
 
-# Función para obtener datos financieros de un ETF de Yahoo Finance
+# Función para obtener datos financieros de un ETF o índice de Yahoo Finance
 def obtener_datos_etf(ticker, periodo):
     etf = yf.Ticker(ticker)
     datos = etf.history(period=periodo)
@@ -55,7 +57,7 @@ def obtener_datos_etf(ticker, periodo):
 def calcular_rendimiento_riesgo(datos):
     rendimiento = datos['Close'].pct_change().mean() * 252
     riesgo = datos['Close'].pct_change().std() * (252 ** 0.5)
-    rendimiento_periodo = (datos['Close'][-1] - datos['Close'][0]) / datos['Close'][0]
+    rendimiento_periodo = (datos['Close'].iloc[-1] - datos['Close'].iloc[0]) / datos['Close'].iloc[0]
     return rendimiento, riesgo, rendimiento_periodo
 
 # Configuración de la aplicación
@@ -161,8 +163,25 @@ ax.legend(title="ETF")
 
 st.pyplot(fig)
 
+# Selector de Índices de Referencia
+st.write("### Comparación con Índices de Referencia")
+benchmark = st.selectbox("Selecciona un índice de referencia", ("^GSPC (S&P 500)", "^IXIC (NASDAQ)", "^DJI (Dow Jones)"))
+benchmark_ticker = benchmark.split(" ")[0]
+datos_benchmark = obtener_datos_etf(benchmark_ticker, periodo_seleccionado)
 
+if not datos_benchmark.empty:
+    rendimiento_benchmark = calcular_rendimiento_riesgo(datos_benchmark)[0]
+    st.write(f"El rendimiento anualizado del índice de referencia seleccionado ({benchmark}) es de **{rendimiento_benchmark:.2%}**.")
 
+# Predicción Basada en Machine Learning
+st.write("### Predicción del Precio Futuro (Machine Learning)")
+dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro", 1, 60, 30)
+datos_entrenamiento = datos_etf['Close'].reset_index()
+datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
+modelo = LinearRegression()
+modelo.fit(datos_entrenamiento[['Tiempo']], datos_entrenamiento['Close'])
+proyeccion = modelo.predict([[len(datos_entrenamiento) + dias_a_predecir]])
+st.write(f"El precio proyectado del ETF **{etf_seleccionado1}** en {dias_a_predecir} días es de **${proyeccion[0]:,.2f}**.")
 
 # Sección de Información de Contacto
 st.markdown("""
