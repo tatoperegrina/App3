@@ -8,12 +8,12 @@ from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
 # Configuración de la página y estilo
-st.set_page_config(page_title="Simulador y Predicción de ETFs", layout="centered")
+st.set_page_config(page_title="Simulador y Predicción de ETFs", layout="wide")
 st.markdown(
     """
     <style>
-    .stApp {background-color: #E8E8E8;}
-    h1, h2, h3, h4 {color: #002B4D;}
+    .stApp {background-color: #F4F4F9;}
+    h1, h2, h3 {color: #003366;}
     .css-1lcbmhc {padding-top: 1.5rem;}
     </style>
     """, unsafe_allow_html=True
@@ -24,6 +24,14 @@ def obtener_datos_etf(ticker, periodo):
     etf = yf.Ticker(ticker)
     datos = etf.history(period=periodo)
     return datos
+
+# Función para calcular resultados de inversión
+def calcular_inversion(datos, monto_inicial):
+    precio_inicial = datos['Close'].iloc[0]
+    precio_final = datos['Close'].iloc[-1]
+    rendimiento = (precio_final / precio_inicial) - 1
+    monto_final = monto_inicial * (1 + rendimiento)
+    return rendimiento, monto_final
 
 # Función para entrenar modelo de predicción
 def entrenar_modelo(datos, dias_prediccion):
@@ -59,7 +67,7 @@ descripciones_etfs = {
 
 # Configuración de la aplicación
 st.title("Simulador y Predicción de ETFs")
-st.write("Analiza y proyecta el comportamiento de los ETFs. IMPORTANTE: Ningún resultado está garantizado. Toma tus decisiones con precaución.")
+st.write("Analiza, proyecta y simula el comportamiento de los ETFs. IMPORTANTE: Ningún resultado está garantizado. Toma tus decisiones con precaución.")
 
 # Selección de ETFs
 etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", descripciones_etfs.keys())
@@ -85,6 +93,12 @@ def mostrar_resultados(etf_ticker, monto_inicial, color, horizonte_prediccion):
         st.write(f"No se encontró información para el ETF {etf_ticker}.")
         return None
     
+    # Resultados de inversión
+    rendimiento, monto_final = calcular_inversion(datos_etf, monto_inicial)
+    st.markdown(f"### Resultados para {etf_ticker}")
+    st.write(f"**Rendimiento histórico:** {rendimiento:.2%}")
+    st.write(f"**Monto final estimado:** ${monto_final:,.2f}")
+    
     # Predicción de Machine Learning
     prediccion, modelo = entrenar_modelo(datos_etf, horizonte_prediccion)
     fechas_prediccion = pd.date_range(datos_etf.index[-1], periods=horizonte_prediccion + 1, freq="D")[1:]
@@ -92,18 +106,24 @@ def mostrar_resultados(etf_ticker, monto_inicial, color, horizonte_prediccion):
     # Almacena datos en lista
     etfs_datos.append((etf_ticker, datos_etf, prediccion, fechas_prediccion))
     
-    # Resultados para el ETF actual
-    st.markdown(f"### Resultados para {etf_ticker}")
-    st.write(f"Predicción del precio de cierre para los próximos {horizonte_prediccion} días.")
+    # Gráficos
+    fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+    
+    # Gráfico de precios históricos
+    ax[0].plot(datos_etf.index, datos_etf['Close'], label="Precio Histórico", color=color)
+    ax[0].set_title(f"Precio Histórico - {etf_ticker}")
+    ax[0].set_xlabel("Fecha")
+    ax[0].set_ylabel("Precio de Cierre (USD)")
+    ax[0].legend()
     
     # Gráfico de predicción
-    fig, ax = plt.subplots()
-    ax.plot(datos_etf.index, datos_etf['Close'], label="Precio Histórico", color=color)
-    ax.plot(fechas_prediccion, prediccion, label="Predicción", linestyle="--", color="#FF5733")
-    ax.set_title(f"Predicción para {etf_ticker}")
-    ax.set_xlabel("Fecha")
-    ax.set_ylabel("Precio de Cierre (USD)")
-    ax.legend()
+    ax[1].plot(datos_etf.index, datos_etf['Close'], label="Precio Histórico", color=color)
+    ax[1].plot(fechas_prediccion, prediccion, label="Predicción", linestyle="--", color="#FF5733")
+    ax[1].set_title(f"Predicción para {etf_ticker}")
+    ax[1].set_xlabel("Fecha")
+    ax[1].set_ylabel("Precio de Cierre (USD)")
+    ax[1].legend()
+    
     st.pyplot(fig)
 
 # Mostrar resultados y predicciones para el primer ETF
