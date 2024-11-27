@@ -3,6 +3,7 @@ import yfinance as yf
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+pip install scikit-learn
 from sklearn.linear_model import LinearRegression
 import numpy as np
 
