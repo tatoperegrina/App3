@@ -1,134 +1,194 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import train_test_split
+import numpy as np
 
 # Configuración de la página y estilo
-st.set_page_config(page_title="Simulador y Predicción de ETFs", layout="wide")
+st.set_page_config(page_title="Simulador y Consulta de Rendimientos de los ETFs", layout="centered")
 st.markdown(
     """
     <style>
-    .stApp {background-color: #F4F4F9;}
-    h1, h2, h3 {color: #003366;}
+    .stApp {background-color: #E8E8E8;}
+    h1, h2, h3, h4 {color: #002B4D;}
     .css-1lcbmhc {padding-top: 1.5rem;}
+    .metric-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #002B4D;
+    }
+    .metrics-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        margin: 10px 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .contact-info {
+        margin-top: 50px;
+        text-align: center;
+        font-family: Arial, sans-serif;
+        color: #002B4D;
+        background-color: white;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .contact-info h4 {
+        font-size: 1.2em;
+    }
+    .contact-info p {
+        font-size: 1em;
+        margin: 5px 0;
+    }
     </style>
     """, unsafe_allow_html=True
 )
 
-# Función para obtener datos financieros de un ETF de Yahoo Finance
+# Función para obtener datos financieros de un ETF o índice de Yahoo Finance
 def obtener_datos_etf(ticker, periodo):
     etf = yf.Ticker(ticker)
     datos = etf.history(period=periodo)
     return datos
 
-# Función para calcular resultados de inversión
-def calcular_inversion(datos, monto_inicial):
-    precio_inicial = datos['Close'].iloc[0]
-    precio_final = datos['Close'].iloc[-1]
-    rendimiento = (precio_final / precio_inicial) - 1
-    monto_final = monto_inicial * (1 + rendimiento)
-    return rendimiento, monto_final
-
-# Función para entrenar modelo de predicción
-def entrenar_modelo(datos, dias_prediccion):
-    datos['Dias'] = np.arange(len(datos))
-    X = datos[['Dias']]
-    y = datos['Close']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    modelo = LinearRegression()
-    modelo.fit(X_train, y_train)
-    prediccion = modelo.predict(np.arange(len(datos), len(datos) + dias_prediccion).reshape(-1, 1))
-    return prediccion, modelo
-
-# Descripciones breves de los ETFs
-descripciones_etfs = {
-    "SPY": "SPY: ETF que sigue el índice S&P 500.",
-    "QQQ": "QQQ: ETF que sigue el índice Nasdaq-100.",
-    "DIA": "DIA: ETF que sigue el índice Dow Jones.",
-    "XLF": "XLF: ETF centrado en el sector financiero.",
-    "VWO": "VWO: ETF de mercados emergentes.",
-    "XLV": "XLV: ETF del sector salud.",
-    "ITB": "ITB: ETF del sector de construcción.",
-    "SLV": "SLV: ETF que sigue el precio de la plata.",
-    "EWU": "EWU: ETF de Reino Unido.",
-    "EWT": "EWT: ETF de Taiwán.",
-    "EWY": "EWY: ETF de Corea del Sur.",
-    "EZU": "EZU: ETF de la eurozona.",
-    "EWC": "EWC: ETF de Canadá.",
-    "EWJ": "EWJ: ETF de Japón.",
-    "EWG": "EWG: ETF de Alemania.",
-    "EWA": "EWA: ETF de Australia.",
-    "AGG": "AGG: ETF de bonos de EE.UU.",
-}
+# Cálculo de rendimiento y riesgo
+def calcular_rendimiento_riesgo(datos):
+    rendimiento = datos['Close'].pct_change().mean() * 252
+    riesgo = datos['Close'].pct_change().std() * (252 ** 0.5)
+    rendimiento_periodo = (datos['Close'].iloc[-1] - datos['Close'].iloc[0]) / datos['Close'].iloc[0]
+    return rendimiento, riesgo, rendimiento_periodo
 
 # Configuración de la aplicación
-st.title("Simulador y Predicción de ETFs")
-st.write("Analiza, proyecta y simula el comportamiento de los ETFs. IMPORTANTE: Ningún resultado está garantizado. Toma tus decisiones con precaución.")
+st.title("Simulador y Consulta de Rendimientos de los ETFs")
+st.write("Este simulador te ayudará a ver los rendimientos de algunos ETFs y a consultar el riesgo. IMPORTANTE, ningún rendimiento o resultado está garantizado. Tome sus decisiones con precaución.")
 
-# Selección de ETFs
-etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", descripciones_etfs.keys())
-st.caption(descripciones_etfs[etf_seleccionado1])
-etf_seleccionado2 = st.selectbox("Selecciona el segundo ETF (opcional)", ["Ninguno"] + list(descripciones_etfs.keys()))
-if etf_seleccionado2 != "Ninguno":
-    st.caption(descripciones_etfs[etf_seleccionado2])
+# Selección de uno o dos ETFs y periodo de análisis
+etf_seleccionado1 = st.selectbox("Selecciona el primer ETF", ("SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))   
+etf_seleccionado2 = st.selectbox("Selecciona el segundo ETF (opcional)", ("Ninguno", "SPY", "QQQ", "DIA", "XLF", "VWO", "XLV", "ITB", "SLV", "EWU", "EWT", "EWY", "EZU", "EWC", "EWJ", "EWG", "EWA", "AGG"))
+periodo_seleccionado = st.selectbox("Selecciona el periodo", ("1mo", "3mo", "6mo", "1y", "3y", "5y", "10y"))
 
-# Selección de periodo
-periodo_seleccionado = st.selectbox("Selecciona el periodo de análisis", ["1y", "3y", "5y", "10y"])
-
-# Ingreso de monto y horizonte de predicción
+# Obtención de datos
 monto_inicial = st.number_input("Ingresa el monto a invertir (USD)", min_value=0.0, value=1000.0, step=100.0, format="%.2f")
-horizonte_prediccion = st.number_input("Ingresa el horizonte de predicción (en días)", min_value=30, max_value=365, step=30, value=90)
 
 # Lista para almacenar datos de los ETFs seleccionados
 etfs_datos = []
 
-# Función para mostrar resultados y predicciones
-def mostrar_resultados(etf_ticker, monto_inicial, color, horizonte_prediccion):
+# Función para mostrar resultados de un ETF específico
+def mostrar_resultados(etf_ticker, monto_inicial, color):
     datos_etf = obtener_datos_etf(etf_ticker, periodo_seleccionado)
     if datos_etf.empty:
         st.write(f"No se encontró información para el ETF {etf_ticker}.")
         return None
     
-    # Resultados de inversión
-    rendimiento, monto_final = calcular_inversion(datos_etf, monto_inicial)
-    st.markdown(f"### Resultados para {etf_ticker}")
-    st.write(f"**Rendimiento histórico:** {rendimiento:.2%}")
-    st.write(f"**Monto final estimado:** ${monto_final:,.2f}")
-    
-    # Predicción de Machine Learning
-    prediccion, modelo = entrenar_modelo(datos_etf, horizonte_prediccion)
-    fechas_prediccion = pd.date_range(datos_etf.index[-1], periods=horizonte_prediccion + 1, freq="D")[1:]
+    # Calcula el rendimiento y el riesgo
+    rendimiento, riesgo, rendimiento_periodo = calcular_rendimiento_riesgo(datos_etf)
+    monto_final = monto_inicial * (1 + rendimiento_periodo)
+    ganancia_perdida = monto_final - monto_inicial
     
     # Almacena datos en lista
-    etfs_datos.append((etf_ticker, datos_etf, prediccion, fechas_prediccion))
+    etfs_datos.append((etf_ticker, datos_etf))
     
-    # Gráficos
-    fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+    # Resultados para el ETF actual
+    st.markdown(f"### Resultados para {etf_ticker}")
+    st.markdown(f"""
+        <div class="metrics-container">
+            <h4 style="color: {color};">Monto Final Estimado (USD)</h4>
+            <div style="font-size: 1.2em; font-weight: bold;">${monto_final:,.2f}</div>
+            <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia' if ganancia_perdida >= 0 else 'Pérdida'}: ${abs(ganancia_perdida):,.2f}</span></p>
+        </div>
+        <div class="metrics-container">
+            <h4 style="color: {color};">Detalles de la Inversión</h4>
+            <table style="width: 100%;">
+                <tr>
+                    <td><strong>Monto Inicial:</strong></td>
+                    <td style="text-align: right;">${monto_inicial:,.2f}</td>
+                </tr>
+                <tr>
+                    <td><strong>Rendimiento del Período:</strong></td>
+                    <td style="text-align: right;">{rendimiento_periodo:.2%}</td>
+                </tr>
+                <tr>
+                    <td><strong>Ganancia/Pérdida:</strong></td>
+                    <td style="text-align: right; color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">${abs(ganancia_perdida):,.2f}</td>
+                </tr>
+                <tr>
+                    <td><strong>Monto Final:</strong></td>
+                    <td style="text-align: right;">${monto_final:,.2f}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="metrics-container">
+            <div style="display: flex; justify-content: space-around;">
+                <div style="text-align: center;">
+                    <h4 style="color: {color};">Rendimiento Anualizado</h4>
+                    <div>{rendimiento:.2%}</div>
+                </div>
+                <div style="text-align: center;">
+                    <h4 style="color: {color};">Riesgo Anualizado</h4>
+                    <div>{riesgo:.2%}</div>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     
-    # Gráfico de precios históricos
-    ax[0].plot(datos_etf.index, datos_etf['Close'], label="Precio Histórico", color=color)
-    ax[0].set_title(f"Precio Histórico - {etf_ticker}")
-    ax[0].set_xlabel("Fecha")
-    ax[0].set_ylabel("Precio de Cierre (USD)")
-    ax[0].legend()
-    
-    # Gráfico de predicción
-    ax[1].plot(datos_etf.index, datos_etf['Close'], label="Precio Histórico", color=color)
-    ax[1].plot(fechas_prediccion, prediccion, label="Predicción", linestyle="--", color="#FF5733")
-    ax[1].set_title(f"Predicción para {etf_ticker}")
-    ax[1].set_xlabel("Fecha")
-    ax[1].set_ylabel("Precio de Cierre (USD)")
-    ax[1].legend()
-    
-    st.pyplot(fig)
+    # Interpretación del Rendimiento y Riesgo
+    st.write("#### Interpretación de las Métricas:")
+    st.write(f"**Rendimiento Anualizado:** Representa el promedio del crecimiento esperado por año basado en los datos históricos del ETF **{etf_ticker}**. Este valor no garantiza rendimientos futuros, pero es útil para estimar el comportamiento potencial.")
+    st.write(f"**Riesgo Anualizado:** Indica la volatilidad del ETF **{etf_ticker}**, es decir, qué tan fluctuante es su rendimiento anual. Un valor más alto implica mayor incertidumbre en los resultados.")
 
-# Mostrar resultados y predicciones para el primer ETF
-mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D", horizonte_prediccion)
+# Mostrar resultados para el primer ETF
+mostrar_resultados(etf_seleccionado1, monto_inicial, "#002B4D")
 
-# Mostrar resultados y predicciones para el segundo ETF si es distinto de "Ninguno"
+# Mostrar resultados para el segundo ETF si es distinto de "Ninguno"
 if etf_seleccionado2 != "Ninguno" and etf_seleccionado2 != etf_seleccionado1:
-    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733", horizonte_prediccion)
+    mostrar_resultados(etf_seleccionado2, monto_inicial, "#FF5733")
+
+# Gráfica de proyección de inversión para uno o dos ETFs
+st.write("### Gráfico del Precio Histórico")
+
+fig, ax = plt.subplots()
+
+# Crear gráfica para cada ETF seleccionado con colores distintos
+for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
+    color = "#002B4D" if idx == 0 else "#FF5733"  # Color distinto para el segundo ETF
+    datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
+    sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
+
+ax.set_title("Histórico")
+ax.set_xlabel("Fecha")
+ax.set_ylabel("Monto de Inversión (USD)")
+ax.legend(title="ETF")
+
+st.pyplot(fig)
+
+# Selector de Índices de Referencia
+st.write("### Comparación con Índices de Referencia")
+benchmark = st.selectbox("Selecciona un índice de referencia", ("^GSPC (S&P 500)", "^IXIC (NASDAQ)", "^DJI (Dow Jones)"))
+benchmark_ticker = benchmark.split(" ")[0]
+datos_benchmark = obtener_datos_etf(benchmark_ticker, periodo_seleccionado)
+
+if not datos_benchmark.empty:
+    rendimiento_benchmark = calcular_rendimiento_riesgo(datos_benchmark)[0]
+    st.write(f"El rendimiento anualizado del índice de referencia seleccionado ({benchmark}) es de **{rendimiento_benchmark:.2%}**.")
+
+# Predicción Basada en Machine Learning
+st.write("### Predicción del Precio Futuro (Machine Learning)")
+dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro", 1, 60, 30)
+datos_entrenamiento = datos_etf['Close'].reset_index()
+datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
+modelo = LinearRegression()
+modelo.fit(datos_entrenamiento[['Tiempo']], datos_entrenamiento['Close'])
+proyeccion = modelo.predict([[len(datos_entrenamiento) + dias_a_predecir]])
+st.write(f"El precio proyectado del ETF **{etf_seleccionado1}** en {dias_a_predecir} días es de **${proyeccion[0]:,.2f}**.")
+
+# Sección de Información de Contacto
+st.markdown("""
+    <div class="contact-info">
+        <h4>Información de Contacto del Asesor</h4>
+        <p><strong>Nombre:</strong> Santiago Peregrina Flores</p>
+        <p><strong>Celular:</strong> 3312706143</p>
+        <p><strong>Correo Electrónico:</strong> 0242856@up.edu.mx</p>
+    </div>
+""", unsafe_allow_html=True)
