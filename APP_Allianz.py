@@ -164,4 +164,9 @@ dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro
 for etf_ticker, datos_etf in etfs_datos:
     datos_entrenamiento = datos_etf['Close'].reset_index()
     datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
-   
+    modelo = LinearRegression()
+    X = datos_entrenamiento[['Tiempo']]
+    y = datos_entrenamiento['Close']
+    modelo.fit(X, y)
+    prediccion = modelo.predict([[len(datos_entrenamiento) + dias_a_predecir]])
+    st.write(f"El precio estimado para {etf_ticker} en {dias_a_predecir} días es **${prediccion[0]:.2f}**.")
