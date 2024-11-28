@@ -163,7 +163,7 @@ st.pyplot(fig)
 
 # Predicción con regresión lineal
 st.write("### Predicción del Precio Futuro")
-dias_a_predecir = st.slider("Selecciona el número de días para predecir", 30, 360, step=30)
+dias_a_predecir = st.slider("Selecciona el número de días para predecir. ¡Recuerda que NO es garantizado!", 30, 360, step=30)
 
 fig_prediccion, ax_pred = plt.subplots()
 for etf_ticker, datos_etf in etfs_datos:
