@@ -131,6 +131,10 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
                 </div>
             </div>
         </div>
+        <div class="metrics-container">
+            <p><strong>Interpretación del Rendimiento Anualizado:</strong> Indica el promedio anual esperado de retorno sobre tu inversión basado en datos históricos.</p>
+            <p><strong>Interpretación del Riesgo Anualizado:</strong> Representa la variabilidad del rendimiento anual. Un valor más alto implica mayor incertidumbre.</p>
+        </div>
     """, unsafe_allow_html=True)
 
 # Mostrar resultados para el primer ETF
@@ -151,22 +155,38 @@ for idx, (etf_ticker, datos_etf) in enumerate(etfs_datos):
     datos_etf["Investment Value"] = monto_inicial * (datos_etf["Close"] / datos_etf["Close"].iloc[0])
     sns.lineplot(data=datos_etf, x=datos_etf.index, y="Investment Value", ax=ax, label=etf_ticker, color=color)
 
-ax.set_title("Histórico")
-ax.set_xlabel("Fecha")
-ax.set_ylabel("Monto de Inversión (USD)")
-ax.legend(title="ETF")
-
+ax.set_title("Crecimiento del Monto Invertido", fontsize=14)
+ax.set_ylabel("Monto (USD)", fontsize=12)
+ax.set_xlabel("Fecha", fontsize=12)
+ax.legend()
 st.pyplot(fig)
 
-# Predicción Basada en Machine Learning
-st.write("### Predicción del Precio Futuro (Machine Learning)")
-dias_a_predecir = st.slider("Selecciona los días para predecir el precio futuro", 1, 60, 30)
+# Predicción con regresión lineal
+st.write("### Predicción del Precio Futuro")
+dias_a_predecir = st.slider("Selecciona el número de días para predecir", 30, 360, step=30)
+
+fig_prediccion, ax_pred = plt.subplots()
 for etf_ticker, datos_etf in etfs_datos:
-    datos_entrenamiento = datos_etf['Close'].reset_index()
-    datos_entrenamiento['Tiempo'] = range(len(datos_entrenamiento))
+    datos_entrenamiento = datos_etf.reset_index()
+    datos_entrenamiento["Tiempo"] = np.arange(len(datos_entrenamiento))
     modelo = LinearRegression()
-    X = datos_entrenamiento[['Tiempo']]
-    y = datos_entrenamiento['Close']
+    X = datos_entrenamiento[["Tiempo"]]
+    y = datos_entrenamiento["Close"]
     modelo.fit(X, y)
-    prediccion = modelo.predict([[len(datos_entrenamiento) + dias_a_predecir]])
-    st.write(f"El precio estimado para {etf_ticker} en {dias_a_predecir} días es **${prediccion[0]:.2f}**.")
+    
+    # Predicción para cada día hasta el futuro seleccionado
+    tiempo_futuro = np.arange(len(X), len(X) + dias_a_predecir).reshape(-1, 1)
+    predicciones = modelo.predict(tiempo_futuro)
+    
+    # Mostrar predicción final
+    st.write(f"El precio estimado para {etf_ticker} en {dias_a_predecir} días es **${predicciones[-1]:.2f}**.")
+    
+    # Graficar datos históricos y predicción
+    sns.lineplot(x=datos_entrenamiento["Tiempo"], y=y, label=f"Histórico {etf_ticker}", ax=ax_pred)
+    sns.lineplot(x=np.arange(len(X), len(X) + dias_a_predecir), y=predicciones, label=f"Predicción {etf_ticker}", linestyle="--", ax=ax_pred)
+
+ax_pred.set_title("Precio Histórico y Proyección")
+ax_pred.set_xlabel("Días")
+ax_pred.set_ylabel("Precio (USD)")
+ax_pred.legend()
+st.pyplot(fig_prediccion)
