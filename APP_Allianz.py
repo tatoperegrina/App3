@@ -190,3 +190,13 @@ ax_pred.set_xlabel("Días")
 ax_pred.set_ylabel("Precio (USD)")
 ax_pred.legend()
 st.pyplot(fig_prediccion)
+
+# Sección de Información de Contacto
+st.markdown("""
+    <div class="contact-info">
+        <h4>Información de Contacto del Asesor</h4>
+        <p><strong>Nombre:</strong> Santiago Peregrina Flores</p>
+        <p><strong>Celular:</strong> 3312706143</p>
+        <p><strong>Correo Electrónico:</strong> 0242856@up.edu.mx</p>
+    </div>
+""", unsafe_allow_html=True)
