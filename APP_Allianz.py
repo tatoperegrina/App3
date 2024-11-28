@@ -96,7 +96,7 @@ def mostrar_resultados(etf_ticker, monto_inicial, color):
         <div class="metrics-container">
             <h4 style="color: {color};">Monto Final Estimado (USD)</h4>
             <div style="font-size: 1.2em; font-weight: bold;">${monto_final:,.2f}</div>
-            <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia' if ganancia_perdida >= 0 else 'Pérdida'}: ${abs(ganancia_perdida):,.2f}</span></p>
+            <p><span style="color: {'#28a745' if ganancia_perdida >= 0 else '#dc3545'};">{'Ganancia ESTIMADA' if ganancia_perdida >= 0 else 'Pérdida ESTIMADA'}: ${abs(ganancia_perdida):,.2f}</span></p>
         </div>
         <div class="metrics-container">
             <h4 style="color: {color};">Detalles de la Inversión</h4>
